@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Watchlist</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+      color: #fff;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    form {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    button {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+    }
+
+    input,
+    select {
+      flex: 1 1 200px;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .movie-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .movie-item {
+      background-color: #333;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .movie-info {
+      flex-grow: 1;
+    }
+
+    .movie-actions button {
+      margin-left: 0.5rem;
+      padding: 5px 10px;
+      font-size: 0.9rem;
+      background-color: #6c757d;
+    }
+
+    .movie-actions button:hover {
+      background-color: #5a6268;
+    }
+
+    .watched {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🎬 My Movie Watchlist</h1>
+
+  <form id="movie-form">
+    <input type="text" id="title" placeholder="Movie Title" required />
+    <input type="number" id="year" placeholder="Year" min="1880" max="2099" required />
+    <select id="status">
+      <option value="to-watch">To Watch</option>
+      <option value="watched">Watched</option>
+    </select>
+    <button type="submit">Add Movie</button>
+  </form>
+  <ul id="movie-list" class="movie-list"></ul>
+
+  <script>
+    const movieForm = document.getElementById('movie-form');
+    const movieList = document.getElementById('movie-list');
+    const titleInput = document.getElementById('title');
+    const suggestionsDiv = document.getElementById('suggestions');
+
+
+    let movies = JSON.parse(localStorage.getItem('movies')) || [];
+
+    const API_KEY = '3edfe428';
+
+    async function fetchMovieData(title) {
+      const url = `https://www.omdbapi.com/?apikey=${API_KEY}&t=${encodeURIComponent(title)}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.Response === "True") {
+          return {
+            title: data.Title,
+            year: data.Year,
+            poster: data.Poster !== "N/A" ? data.Poster : null,
+            plot: data.Plot !== "N/A" ? data.Plot : "No description available.",
+          };
+        } else {
+          alert("Movie not found.");
+          return null;
+        }
+      } catch (err) {
+        alert("Error fetching movie data.");
+        return null;
+      }
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('movies', JSON.stringify(movies));
+    }
+
+    function renderMovies() {
+      movieList.innerHTML = '';
+
+      movies.forEach((movie, index) => {
+        const li = document.createElement('li');
+        li.className = 'movie-item';
+
+        const info = document.createElement('div');
+        info.className = 'movie-info';
+        info.innerHTML = `
+        <div style="display: flex; gap: 1rem;">
+          ${movie.poster ? `<img src="${movie.poster}" alt="${movie.title}" style="width:100px;height:auto;border-radius:6px;" />` : ''}
+          <div>
+            <h3 style="margin:0;">${movie.title} (${movie.year})</h3>
+            <span style="display:inline-block; background-color:${movie.status === 'watched' ? '#17a2b8' : '#ffc107'}; color:#000; padding:4px 8px; border-radius:4px; font-size: 0.8rem; margin: 0.3rem 0;">
+              ${movie.status === 'watched' ? 'Watched' : 'To Watch'}
+            </span>
+            <p style="margin: 0.5rem 0 0; font-size: 0.9rem;">${movie.plot}</p>
+          </div>
+        </div>
+      `;
+
+        const actions = document.createElement('div');
+        actions.className = 'movie-actions';
+        actions.style = 'margin-top: 0.5rem; display:flex; justify-content:flex-end;';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = movie.status === 'watched' ? 'Mark as To-Watch' : 'Mark as Watched';
+        toggleBtn.onclick = () => toggleStatus(index);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => deleteMovie(index);
+
+        actions.appendChild(toggleBtn);
+        actions.appendChild(deleteBtn);
+
+        li.appendChild(info);
+        li.appendChild(actions);
+
+        movieList.appendChild(li);
+      });
+    }
+
+    function toggleStatus(index) {
+      movies[index].status = movies[index].status === 'watched' ? 'to-watch' : 'watched';
+      saveToLocalStorage();
+      renderMovies();
+    }
+
+
+    function deleteMovie(index) {
+      movies.splice(index, 1);
+      saveToLocalStorage();
+      renderMovies();
+    }
+
+    movieForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const year = document.getElementById('year').value;
+      const status = document.getElementById('status').value;
+
+      if (title) {
+        const movieData = await fetchMovieData(title);
+        if (movieData) {
+          movies.push({
+            ...movieData,
+            status
+          });
+          saveToLocalStorage();
+          renderMovies();
+          movieForm.reset();
+        }
+
+      }
+    });
+    renderMovies();
+  </script>
+
+
+</body>
+
+</html>
