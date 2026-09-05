@@ -58,7 +58,6 @@
       background-color: #218838;
     }
 
-    /* Search suggestions */
     #suggestions {
       position: absolute;
       top: calc(100% + 4px);
@@ -222,9 +221,6 @@
     let searchTimeout;
     let searchRequestId = 0;
 
-    /*
-     * Get complete information for one exact movie/series.
-     */
     async function fetchMovieData(title, imdbID = null) {
       let url;
 
@@ -262,11 +258,6 @@
       localStorage.setItem('movies', JSON.stringify(movies));
     }
 
-    /*
-     * Search OMDb while the user types.
-     * A 250ms debounce prevents a request for every single keystroke
-     * while still making the suggestions feel instant.
-     */
     titleInput.addEventListener('input', function () {
       clearTimeout(searchTimeout);
 
@@ -293,7 +284,6 @@
         const res = await fetch(url);
         const data = await res.json();
 
-        // Ignore an older request if the user has typed something newer.
         if (requestId !== searchRequestId) return;
 
         suggestionsDiv.innerHTML = '';
@@ -303,7 +293,6 @@
           return;
         }
 
-        // Show up to 10 results returned by OMDb.
         data.Search.slice(0, 10).forEach(item => {
           const suggestion = document.createElement('div');
           suggestion.className = 'suggestion';
@@ -333,10 +322,6 @@
           suggestion.appendChild(poster);
           suggestion.appendChild(info);
 
-          /*
-           * Clicking a suggestion immediately adds that exact title
-           * to the watchlist.
-           */
           suggestion.addEventListener('click', async function () {
             suggestionsDiv.innerHTML = '<div class="loading">Adding...</div>';
 
@@ -363,10 +348,6 @@
       }
     }
 
-    /*
-     * Add a movie/series to the watchlist.
-     * Duplicate IMDb IDs are prevented.
-     */
     function addMovie(movieData) {
       const alreadyExists = movies.some(movie =>
         movie.imdbID && movie.imdbID === movieData.imdbID
@@ -488,10 +469,6 @@
       renderMovies();
     }
 
-    /*
-     * Keep the Add Movie button as an optional manual way to add a title.
-     * Clicking a suggestion is still the primary method.
-     */
     movieForm.addEventListener('submit', async function (e) {
       e.preventDefault();
 
@@ -508,9 +485,6 @@
       }
     });
 
-    /*
-     * Close suggestions when clicking outside the search box.
-     */
     document.addEventListener('click', function (e) {
       if (!e.target.closest('.search-container')) {
         suggestionsDiv.innerHTML = '';
